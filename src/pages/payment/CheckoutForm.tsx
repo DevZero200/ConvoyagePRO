@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useStripe, useElements, CardElement } from '@stripe/react-stripe-js';
 import { Button } from '../../components/ui/button';
+import axios from 'axios';
 
 const CARD_ELEMENT_OPTIONS = {
   style: {
@@ -25,10 +26,11 @@ const CARD_ELEMENT_OPTIONS = {
 
 interface CheckoutFormProps {
   amount: number;
+  orderId: string;
   onSuccess: () => void;
 }
 
-export function CheckoutForm({ amount, onSuccess }: CheckoutFormProps) {
+export function CheckoutForm({ amount, orderId, onSuccess }: CheckoutFormProps) {
   const stripe = useStripe();
   const elements = useElements();
   const [error, setError] = useState<string | null>(null);
@@ -44,22 +46,43 @@ export function CheckoutForm({ amount, onSuccess }: CheckoutFormProps) {
     setLoading(true);
     setError(null);
 
-    const { error: stripeError, paymentMethod } = await stripe.createPaymentMethod({
-      type: 'card',
-      card: elements.getElement(CardElement)!,
-    });
+    try {
+      // 1. Créer une intention de paiement
+      const { data: paymentIntent } = await axios.post('http://localhost:3001/api/create-payment-intent', {
+        amount,
+        orderId
+      });
 
-    if (stripeError) {
-      setError(stripeError.message || 'Une erreur est survenue');
+      // 2. Confirmer le paiement avec Stripe
+      const { error: stripeError, paymentIntent: confirmedPayment } = await stripe.confirmCardPayment(
+        paymentIntent.clientSecret,
+        {
+          payment_method: {
+            card: elements.getElement(CardElement)!,
+          },
+        }
+      );
+
+      if (stripeError) {
+        setError(stripeError.message || 'Une erreur est survenue lors du paiement');
+        return;
+      }
+
+      if (confirmedPayment.status === 'succeeded') {
+        // 3. Mettre à jour le statut de la commande
+        await axios.post('http://localhost:3001/api/update-order-status', {
+          orderId,
+          status: 'paid',
+          paymentIntentId: confirmedPayment.id
+        });
+
+        onSuccess();
+      }
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Une erreur est survenue');
+    } finally {
       setLoading(false);
-      return;
     }
-
-    // Simuler un paiement réussi
-    setTimeout(() => {
-      setLoading(false);
-      onSuccess();
-    }, 2000);
   };
 
   return (

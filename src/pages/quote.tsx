@@ -1,91 +1,113 @@
-import { useState } from 'react';
-import { MapPin, Calculator, Truck } from 'lucide-react';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/button';
 import { Radio } from '../components/ui/radio-group';
 import { PlacesAutocomplete } from '../components/ui/places-autocomplete';
-import { useNavigate } from 'react-router-dom';
-import { paymentService } from '../lib/api';
+import { Calculator, Truck } from 'lucide-react';
+import axios from 'axios';
+import { useAuth } from '../context/AuthContext';
 
 export function Quote() {
   const navigate = useNavigate();
-  const [transportType, setTransportType] = useState<'road' | 'carrier'>('road');
+  const { user } = useAuth();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [departure, setDeparture] = useState('');
-  const [arrival, setArrival] = useState('');
   const [departureDetails, setDepartureDetails] = useState('');
+  const [arrival, setArrival] = useState('');
   const [arrivalDetails, setArrivalDetails] = useState('');
   const [departureLatLng, setDepartureLatLng] = useState<google.maps.LatLngLiteral | null>(null);
   const [arrivalLatLng, setArrivalLatLng] = useState<google.maps.LatLngLiteral | null>(null);
+  const [transportType, setTransportType] = useState<'road' | 'carrier'>('road');
   const [distance, setDistance] = useState<number | null>(null);
   const [price, setPrice] = useState<number | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
-  const calculatePrice = async () => {
-    if (!departureLatLng || !arrivalLatLng) {
-      setError('Veuillez sélectionner une adresse de départ et d\'arrivée');
-      return;
-    }
+  const calculateDistance = async () => {
+    if (!departureLatLng || !arrivalLatLng) return;
 
-    setLoading(true);
-    setError(null);
+    const service = new google.maps.DistanceMatrixService();
+    const result = await service.getDistanceMatrix({
+      origins: [departureLatLng],
+      destinations: [arrivalLatLng],
+      travelMode: google.maps.TravelMode.DRIVING,
+    });
 
-    try {
-      const service = new google.maps.DistanceMatrixService();
-      const response = await new Promise<google.maps.DistanceMatrixResponse>((resolve, reject) => {
-        service.getDistanceMatrix({
-          origins: [departureLatLng],
-          destinations: [arrivalLatLng],
-          travelMode: google.maps.TravelMode.DRIVING,
-          unitSystem: google.maps.UnitSystem.METRIC
-        }, (response, status) => {
-          if (status === 'OK' && response) {
-            resolve(response);
-          } else {
-            reject(new Error('Erreur de calcul de distance'));
-          }
-        });
-      });
-
-      if (response.rows[0]?.elements[0]?.distance) {
-        const distanceInKm = Math.ceil(response.rows[0].elements[0].distance.value / 1000);
-        setDistance(distanceInKm);
-        const pricePerKm = transportType === 'road' ? 1 : 11;
-        const calculatedPrice = Math.ceil(distanceInKm * pricePerKm);
-        setPrice(calculatedPrice);
-      } else {
-        throw new Error('Impossible de calculer la distance');
-      }
-    } catch (error) {
-      console.error('Erreur de calcul:', error);
-      setError('Erreur lors du calcul du prix. Veuillez réessayer.');
-    } finally {
-      setLoading(false);
+    if (result.rows[0]?.elements[0]?.distance) {
+      const distanceInKm = Math.ceil(result.rows[0].elements[0].distance.value / 1000);
+      setDistance(distanceInKm);
+      setPrice(transportType === 'road' ? distanceInKm : distanceInKm * 11);
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await calculatePrice();
+    setError(null);
+    setLoading(true);
+
+    try {
+      await calculateDistance();
+    } catch (err) {
+      setError('Erreur lors du calcul de la distance');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handlePayment = async () => {
-    if (!price || !distance) return;
+    if (!price || !distance) {
+      setError('Veuillez d\'abord calculer le prix');
+      return;
+    }
+
+    // Si l'utilisateur n'est pas connecté, on le redirige vers la page de connexion
+    if (!user) {
+      // Sauvegarder les données du devis dans le localStorage
+      const quoteData = {
+        departure,
+        departureDetails,
+        arrival,
+        arrivalDetails,
+        distance,
+        price,
+        transportType
+      };
+      localStorage.setItem('pendingQuote', JSON.stringify(quoteData));
+      
+      // Rediriger vers la page de connexion
+      navigate('/login', { 
+        state: { 
+          from: '/quote',
+          message: 'Veuillez vous connecter pour continuer votre commande.'
+        }
+      });
+      return;
+    }
 
     try {
       setLoading(true);
-      const response = await paymentService.createStripeSession({
-        type: transportType,
+      setError(null);
+
+      const transportData = {
         departure: `${departure}\n${departureDetails}`,
         arrival: `${arrival}\n${arrivalDetails}`,
+        distance,
         price,
-        distance
+        transportType
+      };
+
+      const response = await axios.post('http://localhost:3001/api/payment/create-checkout-session', {
+        amount: Math.round(price * 100),
+        transportData
       });
 
-      if (response.data.url) {
-        window.location.href = response.data.url;
+      if (response.data?.url) {
+        window.location.replace(response.data.url);
+      } else {
+        throw new Error('URL de paiement non reçue du serveur');
       }
-    } catch (error) {
-      setError('Erreur lors de l\'initialisation du paiement');
+    } catch (err: any) {
+      console.error('Erreur lors de la création de la session de paiement:', err);
+      setError(err.response?.data?.message || 'Une erreur est survenue lors de la création de la session de paiement');
     } finally {
       setLoading(false);
     }
@@ -235,7 +257,7 @@ export function Quote() {
                       onClick={handlePayment}
                       disabled={loading}
                     >
-                      {loading ? 'Traitement...' : 'Procéder au paiement'}
+                      {loading ? 'Traitement...' : user ? 'Payer maintenant' : 'Se connecter pour payer'}
                     </Button>
                   </div>
                 )}

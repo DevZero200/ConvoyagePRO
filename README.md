@@ -1,150 +1,119 @@
-# Plateforme de Transport de Véhicules
+# ConvoyagePRO - Plateforme de Transport de Véhicules
 
-Une application web moderne pour la gestion de transport de véhicules, construite avec React, Node.js, et SQLite.
+ConvoyagePRO est une application web moderne permettant de gérer le transport de véhicules de manière simple et efficace.
 
-## Technologies utilisées
+## Fonctionnalités
 
-- Frontend: React, TypeScript, Tailwind CSS
+- Calcul automatique des prix basé sur la distance
+- Système de paiement sécurisé avec Stripe
+- Interface utilisateur moderne et responsive
+- Tableau de bord pour suivre vos commandes
+- Authentification des utilisateurs
+
+## Technologies Utilisées
+
+- Frontend: React, TypeScript, TailwindCSS
 - Backend: Node.js, Express
 - Base de données: SQLite
-- Authentification: JWT
-- Paiement: Stripe, PayPal
+- Paiement: Stripe
 - Cartographie: Google Maps API
 
 ## Prérequis
 
-- Node.js (v18 ou supérieur)
+- Node.js (v14 ou supérieur)
 - npm ou yarn
-- Un compte Stripe pour les paiements
-- Un compte Google Cloud pour l'API Maps
-- Un éditeur de code (VS Code recommandé)
+- Compte Stripe (pour les paiements)
+- Clé API Google Maps
 
 ## Installation
 
-1. Cloner le repository
+1. Clonez le dépôt :
 
 ```bash
-git clone https://github.com/votre-username/transport-platform.git
-cd transport-platform
+git clone https://github.com/votre-username/ConvoyagePRO.git
+cd ConvoyagePRO
 ```
 
-2. Installer les dépendances
+2. Installez les dépendances du frontend :
 
 ```bash
-# Installation des dépendances du frontend
 npm install
+```
 
-# Installation des dépendances du backend
+3. Installez les dépendances du backend :
+
+```bash
 cd server
 npm install
 ```
 
-3. Configuration des variables d'environnement
-
-Créer un fichier `.env` à la racine du projet :
+4. Créez un fichier `.env` dans le dossier racine :
 
 ```env
-PORT=3000
-JWT_SECRET=votre-secret-jwt
-VITE_STRIPE_PUBLISHABLE_KEY=votre-cle-stripe-publique
-STRIPE_SECRET_KEY=votre-cle-stripe-secrete
-VITE_PAYPAL_CLIENT_ID=votre-client-id-paypal
-VITE_GOOGLE_MAPS_API_KEY=votre-cle-api-google-maps
-CLIENT_URL=http://localhost:5173
+VITE_GOOGLE_MAPS_API_KEY=votre_clé_google_maps
 ```
 
-4. Initialiser la base de données
+5. Créez un fichier `.env` dans le dossier `server` :
+
+```env
+PORT=3001
+STRIPE_SECRET_KEY=votre_clé_secrète_stripe
+JWT_SECRET=votre_secret_jwt
+```
+
+## Démarrage
+
+1. Démarrez le serveur backend :
 
 ```bash
 cd server
-node database/init.js
-```
-
-## Démarrage du projet
-
-1. Démarrer le serveur de développement frontend
-
-```bash
-# Dans le dossier racine
 npm run dev
 ```
 
-2. Démarrer le serveur backend
+2. Dans un nouveau terminal, démarrez le frontend :
 
 ```bash
-# Dans un nouveau terminal, dans le dossier server
-npm run server
+cd ..
+npm run dev
 ```
 
-L'application sera accessible à l'adresse : http://localhost:5173
-
-## Structure du projet
-
+3. Ouvrez votre navigateur et accédez à :
 ```
-├── src/                  # Code source frontend
-│   ├── components/       # Composants React réutilisables
-│   ├── context/         # Contextes React (auth, etc.)
-│   ├── lib/             # Utilitaires et helpers
-│   └── pages/           # Pages de l'application
-├── server/              # Code source backend
-│   ├── database/        # Configuration et migrations SQLite
-│   ├── middleware/      # Middleware Express
-│   └── routes/          # Routes API
-└── public/              # Assets statiques
+http://localhost:5173
 ```
 
-## Déploiement
+## Utilisation
 
-### Frontend
+1. Créez un compte ou connectez-vous
+2. Accédez à la page de devis
+3. Entrez les adresses de départ et d'arrivée
+4. Choisissez le type de transport
+5. Validez votre commande avec paiement sécurisé
 
-1. Construire l'application
+## Variables d'Environnement Requises
 
-```bash
-npm run build
-```
+### Frontend (.env)
+- `VITE_GOOGLE_MAPS_API_KEY` : Clé API Google Maps
 
-2. Les fichiers de production seront générés dans le dossier `dist`
-
-3. Déployer sur votre hébergeur préféré (Netlify, Vercel, etc.)
-
-### Backend
-
-1. Configurer les variables d'environnement de production
-
-2. Déployer sur votre serveur :
-   - Installer Node.js
-   - Cloner le repository
-   - Installer les dépendances
-   - Configurer un reverse proxy (nginx recommandé)
-   - Utiliser PM2 pour la gestion des processus
-
-```bash
-npm install -g pm2
-pm2 start server/index.js
-```
-
-## Tests
-
-```bash
-# Exécuter les tests unitaires
-npm run test
-
-# Exécuter les tests avec couverture
-npm run test:coverage
-```
+### Backend (server/.env)
+- `PORT` : Port du serveur (default: 3001)
+- `STRIPE_SECRET_KEY` : Clé secrète Stripe
+- `JWT_SECRET` : Secret pour la génération des tokens JWT
 
 ## Contribution
 
 1. Fork le projet
-2. Créer une branche pour votre fonctionnalité (`git checkout -b feature/AmazingFeature`)
-3. Commit vos changements (`git commit -m 'Add some AmazingFeature'`)
-4. Push sur la branche (`git push origin feature/AmazingFeature`)
-5. Ouvrir une Pull Request
+2. Créez votre branche (`git checkout -b feature/AmazingFeature`)
+3. Committez vos changements (`git commit -m 'Add some AmazingFeature'`)
+4. Push vers la branche (`git push origin feature/AmazingFeature`)
+5. Ouvrez une Pull Request
 
-## Licence
+## License
 
 Ce projet est sous licence MIT. Voir le fichier `LICENSE` pour plus de détails.
 
-## Support
+## Contact
 
-Pour toute question ou problème, veuillez ouvrir une issue sur GitHub.
+Votre Nom - [@votre_twitter](https://twitter.com/votre_twitter)
+
+Lien du projet: [https://github.com/votre-username/ConvoyagePRO](https://github.com/votre-username/ConvoyagePRO)

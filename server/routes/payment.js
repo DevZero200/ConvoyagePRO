@@ -1,10 +1,7 @@
-import express from 'express';
-import PaymentController from '../controllers/paymentController.js';
-import { auth } from '../middleware/auth.js';
-
+const express = require('express');
 const router = express.Router();
+const { createCheckoutSession } = require('../controllers/paymentController');
 
-router.post('/stripe/create-session', auth, PaymentController.createStripeSession);
-router.get('/stripe/session/:sessionId', auth, PaymentController.getSession);
+router.post('/create-checkout-session', createCheckoutSession);
 
-export default router;
+module.exports = router;
